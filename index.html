@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Finanças Pessoais</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            black: '#0B0B0B',
+                            orange: '#FF6A00',
+                            gray: '#F3F4F6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 text-brand-black font-sans antialiased overflow-hidden h-screen w-screen select-none">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-[60] flex items-center justify-center hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-orange"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[70] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- LOGIN VIEW -->
+    <section id="login-view" class="h-full w-full flex flex-col items-center justify-center p-6 bg-white">
+        <div class="w-full max-w-md space-y-8">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-brand-orange rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-orange-200">
+                    <i class="ph ph-wallet text-3xl text-white"></i>
+                </div>
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Financeiro</h2>
+                <p class="mt-2 text-sm text-gray-600">Controle total das suas finanças</p>
+            </div>
+
+            <form id="auth-form" class="mt-8 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label for="email" class="sr-only">Email</label>
+                        <input id="email" name="email" type="email" required class="appearance-none rounded-xl relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange sm:text-sm transition-all" placeholder="Email">
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Senha</label>
+                        <input id="password" name="password" type="password" required class="appearance-none rounded-xl relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange sm:text-sm transition-all" placeholder="Senha">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <button type="button" id="btn-toggle-auth" class="font-medium text-brand-orange hover:text-orange-600">
+                        Não tem conta? Crie agora
+                    </button>
+                    <a href="#" class="text-gray-500 hover:text-gray-700">Esqueceu?</a>
+                </div>
+
+                <div>
+                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-brand-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-black transition-all shadow-lg active:scale-95">
+                        <span id="auth-btn-text">Entrar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- APP VIEW -->
+    <section id="app-view" class="h-full w-full hidden flex flex-col md:flex-row">
+
+        <!-- Sidebar (Desktop) -->
+        <aside class="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 h-full p-6 justify-between z-20">
+            <div>
+                <div class="flex items-center gap-3 mb-10 text-brand-orange font-bold text-xl">
+                    <i class="ph ph-wallet text-2xl"></i> Financeiro
+                </div>
+                <nav class="space-y-2">
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all active" data-target="dashboard">
+                        <i class="ph ph-squares-four text-xl"></i> Visão Geral
+                    </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="transactions">
+                        <i class="ph ph-list-dashes text-xl"></i> Lançamentos
+                    </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="reports">
+                        <i class="ph ph-chart-pie-slice text-xl"></i> Relatórios
+                    </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="settings">
+                        <i class="ph ph-gear text-xl"></i> Configurações
+                    </button>
+                </nav>
+            </div>
+            <button id="logout-btn-desktop" class="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                <i class="ph ph-sign-out text-xl"></i> Sair
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 h-full overflow-hidden relative flex flex-col">
+            <!-- Header (Mobile Only) -->
+            <header class="md:hidden h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-20">
+                <div class="font-bold text-lg text-brand-black">Financeiro</div>
+                <button id="logout-btn-mobile" class="text-gray-500">
+                    <i class="ph ph-sign-out text-2xl"></i>
+                </button>
+            </header>
+
+            <!-- Views Container -->
+            <div id="views-container" class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 bg-gray-50 scroll-smooth pb-24 md:pb-8">
+
+                <!-- DASHBOARD -->
+                <div id="view-dashboard" class="view space-y-6 max-w-5xl mx-auto animate-fade-in">
+                    <!-- Header -->
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Olá, <span id="user-name-display">Usuário</span></h1>
+                            <p class="text-gray-500 text-sm">Resumo financeiro deste mês</p>
+                        </div>
+                        <div class="hidden md:block text-sm text-gray-400" id="current-date-display"></div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-brand-black text-white p-6 rounded-2xl shadow-xl shadow-gray-200">
+                            <p class="text-gray-400 text-sm mb-1">Saldo Total</p>
+                            <h2 class="text-3xl font-bold" id="dash-total-balance">R$ 0,00</h2>
+                            <div class="mt-4 flex gap-2 text-xs text-gray-400">
+                                <i class="ph ph-trend-up text-brand-orange"></i> Atualizado agora
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-gray-500 text-sm">Receitas (Mês)</p>
+                                <div class="bg-green-100 p-1.5 rounded-lg text-green-600"><i class="ph ph-arrow-up"></i></div>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900" id="dash-month-income">R$ 0,00</h2>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-gray-500 text-sm">Despesas (Mês)</p>
+                                <div class="bg-red-100 p-1.5 rounded-lg text-red-600"><i class="ph ph-arrow-down"></i></div>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900" id="dash-month-expense">R$ 0,00</h2>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions & Alerts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 class="font-semibold text-gray-900 mb-4">Últimos Lançamentos</h3>
+                            <div id="dash-recent-list" class="space-y-3">
+                                <!-- Skeleton -->
+                                <div class="animate-pulse flex items-center justify-between">
+                                    <div class="h-10 w-10 bg-gray-200 rounded-full"></div>
+                                    <div class="flex-1 ml-4 h-4 bg-gray-200 rounded"></div>
+                                    <div class="w-16 h-4 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                            <button class="mt-4 w-full py-2 text-sm text-brand-orange font-medium hover:bg-orange-50 rounded-lg transition-colors" onclick="router.navigate('transactions')">Ver todos</button>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <h3 class="font-semibold text-gray-900 mb-4">Alertas & Contas</h3>
+                            <div id="dash-alerts-list" class="space-y-3">
+                                <div class="p-3 bg-blue-50 text-blue-700 rounded-xl text-sm flex gap-3 items-center">
+                                    <i class="ph ph-info text-lg"></i>
+                                    <span>Você não tem alertas pendentes.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRANSACTIONS LIST -->
+                <div id="view-transactions" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">Lançamentos</h1>
+                        <button onclick="ui.openModal('modal-transaction')" class="hidden md:flex bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center">
+                            <i class="ph ph-plus"></i> Novo
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        <button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap active-filter">Todos</button>
+                        <button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap text-gray-500">Receitas</button>
+                        <button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap text-gray-500">Despesas</button>
+                        <button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap text-gray-500">Cartão</button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div id="transactions-list" class="divide-y divide-gray-100">
+                           <!-- Dynamic Content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTS -->
+                <div id="view-reports" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <h1 class="text-2xl font-bold text-gray-900">Relatórios</h1>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-64 md:h-96">
+                        <canvas id="chart-categories"></canvas>
+                    </div>
+                </div>
+
+                <!-- SETTINGS/CADASTROS -->
+                <div id="view-settings" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <h1 class="text-2xl font-bold text-gray-900">Configurações & Cadastros</h1>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div onclick="ui.openModal('modal-account')" class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center cursor-pointer hover:border-brand-orange transition-colors">
+                            <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-600"><i class="ph ph-bank text-xl"></i></div>
+                            <span class="text-sm font-medium">Contas</span>
+                        </div>
+                         <div onclick="ui.openModal('modal-category')" class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center cursor-pointer hover:border-brand-orange transition-colors">
+                            <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-600"><i class="ph ph-tag text-xl"></i></div>
+                            <span class="text-sm font-medium">Categorias</span>
+                        </div>
+                         <div onclick="ui.openModal('modal-card')" class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center cursor-pointer hover:border-brand-orange transition-colors">
+                            <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-600"><i class="ph ph-credit-card text-xl"></i></div>
+                            <span class="text-sm font-medium">Cartões</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center cursor-pointer hover:border-brand-orange transition-colors">
+                            <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-600"><i class="ph ph-users text-xl"></i></div>
+                            <span class="text-sm font-medium">Perfil</span>
+                        </div>
+                    </div>
+
+                    <!-- Config Env -->
+                     <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mt-6">
+                        <h3 class="font-semibold mb-4">Conexão Supabase</h3>
+                        <p class="text-sm text-gray-500 mb-4">Insira suas credenciais se não estiverem configuradas.</p>
+                        <form id="config-form" class="space-y-4">
+                            <input type="text" id="cfg-url" placeholder="Supabase URL" class="w-full px-4 py-2 border rounded-lg text-sm">
+                            <input type="password" id="cfg-key" placeholder="Supabase Anon Key" class="w-full px-4 py-2 border rounded-lg text-sm">
+                            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">Salvar</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Navigation (Mobile Only) -->
+            <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-100 flex justify-around items-center h-16 z-30 pb-safe">
+                <button class="nav-item flex flex-col items-center justify-center w-full h-full text-brand-orange" data-target="dashboard">
+                    <i class="ph ph-squares-four text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Início</span>
+                </button>
+                <button class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="transactions">
+                    <i class="ph ph-list-dashes text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Extrato</span>
+                </button>
+
+                <!-- FAB Placeholder -->
+                <div class="w-12"></div>
+
+                <button class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="reports">
+                    <i class="ph ph-chart-pie-slice text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Relat.</span>
+                </button>
+                <button class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="settings">
+                    <i class="ph ph-gear text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Ajustes</span>
+                </button>
+            </nav>
+
+            <!-- Floating Action Button (Mobile) -->
+            <button onclick="ui.openModal('modal-transaction')" class="md:hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-brand-black text-white w-14 h-14 rounded-full shadow-xl shadow-gray-400 flex items-center justify-center z-40 active:scale-90 transition-transform">
+                <i class="ph ph-plus text-2xl"></i>
+            </button>
+
+        </main>
+    </section>
+
+    <!-- MODALS -->
+
+    <!-- Generic Modal Backdrop -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/50 z-50 hidden backdrop-blur-sm transition-opacity opacity-0" onclick="ui.closeAllModals()"></div>
+
+    <!-- Transaction Modal -->
+    <div id="modal-transaction" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[500px] bg-white rounded-t-3xl md:rounded-3xl z-50 transform transition-transform translate-y-full md:translate-y-10 duration-300 hidden p-6 shadow-2xl h-[90vh] md:h-auto flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Nova Transação</h3>
+            <button onclick="ui.closeAllModals()" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+
+        <form id="form-transaction" class="space-y-4 overflow-y-auto flex-1 pb-20 md:pb-0">
+            <!-- Type Switcher -->
+            <div class="flex bg-gray-100 p-1 rounded-xl">
+                <button type="button" class="flex-1 py-2 text-sm font-medium rounded-lg bg-white shadow-sm transition-all" data-value="EXPENSE" onclick="ui.setTransactionType(this, 'EXPENSE')">Despesa</button>
+                <button type="button" class="flex-1 py-2 text-sm font-medium rounded-lg text-gray-500 transition-all" data-value="INCOME" onclick="ui.setTransactionType(this, 'INCOME')">Receita</button>
+                <button type="button" class="flex-1 py-2 text-sm font-medium rounded-lg text-gray-500 transition-all" data-value="TRANSFER" onclick="ui.setTransactionType(this, 'TRANSFER')">Transf.</button>
+            </div>
+            <input type="hidden" name="type" id="trx-type" value="EXPENSE">
+
+            <!-- Amount -->
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Valor</label>
+                <div class="relative mt-1">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
+                    <input type="number" step="0.01" name="amount" id="trx-amount" required class="w-full pl-10 pr-4 py-4 text-2xl font-bold bg-gray-50 rounded-xl border-2 border-transparent focus:border-brand-orange focus:bg-white transition-colors outline-none" placeholder="0,00">
+                </div>
+            </div>
+
+            <!-- Description -->
+             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Descrição</label>
+                <input type="text" name="description" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none mt-1" placeholder="Ex: Mercado">
+            </div>
+
+            <!-- Date -->
+            <div>
+                 <label class="text-xs font-semibold text-gray-500 uppercase">Data</label>
+                 <input type="date" name="date" id="trx-date" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none mt-1">
+            </div>
+
+            <!-- Category -->
+            <div id="field-category">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Categoria</label>
+                    <button type="button" onclick="ui.openModal('modal-category')" class="text-xs text-brand-orange font-bold">+ Criar</button>
+                </div>
+                <select name="category_id" id="trx-category" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none appearance-none">
+                    <option value="">Selecione...</option>
+                </select>
+            </div>
+
+            <!-- Account / Card -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Conta / Cartão</label>
+                    <button type="button" onclick="ui.openModal('modal-account')" class="text-xs text-brand-orange font-bold">+ Criar</button>
+                </div>
+                <select name="account_id" id="trx-account" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none appearance-none">
+                     <option value="">Selecione...</option>
+                </select>
+            </div>
+
+            <!-- Transfer Target (Hidden by default) -->
+             <div id="field-transfer-target" class="hidden">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Para Conta</label>
+                </div>
+                <select name="transfer_account_id" id="trx-transfer-target" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none appearance-none">
+                     <option value="">Selecione...</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full py-4 bg-brand-black text-white rounded-xl font-bold shadow-lg shadow-gray-300 active:scale-95 transition-transform mt-4">
+                Salvar Lançamento
+            </button>
+        </form>
+    </div>
+
+    <!-- Account Modal -->
+    <div id="modal-account" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Nova Conta</h3>
+            <button onclick="ui.closeModal('modal-account')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-account" class="space-y-4">
+            <input type="text" name="name" placeholder="Nome da Conta" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <select name="type" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                <option value="CHECKING">Conta Corrente</option>
+                <option value="WALLET">Carteira / Dinheiro</option>
+                <option value="SAVINGS">Poupança</option>
+                <option value="INVESTMENT">Investimento</option>
+            </select>
+            <input type="number" step="0.01" name="initial_balance" placeholder="Saldo Inicial" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Conta</button>
+        </form>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="modal-category" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Nova Categoria</h3>
+            <button onclick="ui.closeModal('modal-category')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-category" class="space-y-4">
+            <input type="text" name="name" placeholder="Nome da Categoria" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <select name="type" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                <option value="EXPENSE">Despesa</option>
+                <option value="INCOME">Receita</option>
+            </select>
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Categoria</button>
+        </form>
+    </div>
+
+    <!-- Card Modal -->
+    <div id="modal-card" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Novo Cartão</h3>
+            <button onclick="ui.closeModal('modal-card')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-card" class="space-y-4">
+            <input type="text" name="name" placeholder="Apelido do Cartão" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                     <label class="text-[10px] uppercase font-bold text-gray-500">Dia Fechamento</label>
+                    <input type="number" name="closing_day" min="1" max="31" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-500">Dia Vencimento</label>
+                    <input type="number" name="due_day" min="1" max="31" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                </div>
+            </div>
+            <input type="number" name="limit_amount" placeholder="Limite" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Cartão</button>
+        </form>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

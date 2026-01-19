@@ -12,8 +12,6 @@ const formatCurrency = (value) => {
 const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Add timezone offset correction if needed, but usually Supabase returns UTC
-    // Display in local time
     return new Intl.DateTimeFormat('pt-BR').format(date); // DD/MM/YYYY
 };
 
@@ -73,7 +71,6 @@ const api = {
     },
 
     async signUp(email, password) {
-        // Mock full name for now or add field
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -94,9 +91,8 @@ const api = {
 
     // --- DASHBOARD ---
     async getDashboardSummary() {
-        // Use the view created in SQL
         const { data, error } = await supabase.from('view_dashboard_summary').select('*').single();
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is 0 rows
+        if (error && error.code !== 'PGRST116') throw error;
         return data || { total_balance: 0, month_income: 0, month_expense: 0 };
     },
 
@@ -131,13 +127,26 @@ const api = {
         return data;
     },
 
+    async getGoals() {
+        const { data, error } = await supabase.from('goals').select('*').order('deadline', { ascending: true });
+        if (error) throw error;
+        return data;
+    },
+
+    async getDebts() {
+        const { data, error } = await supabase.from('debts').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
+    },
+
+    async getInvestments() {
+        const { data, error } = await supabase.from('investments').select('*').order('name');
+        if (error) throw error;
+        return data;
+    },
+
     // --- CREATION ---
     async createTransaction(payload) {
-        // Basic Logic:
-        // If it's expense/income: Insert transaction.
-        // Trigger in SQL handles account balance update.
-
-        // Convert empty strings to null for UUIDs
         if (!payload.account_id) payload.account_id = null;
         if (!payload.card_id) payload.card_id = null;
         if (!payload.transfer_account_id) payload.transfer_account_id = null;
@@ -154,7 +163,6 @@ const api = {
     },
 
     async createCategory(payload) {
-         // Default icon if missing
         if(!payload.icon) payload.icon = 'tag';
         const { data, error } = await supabase.from('categories').insert(payload).select();
         if (error) throw error;
@@ -163,6 +171,31 @@ const api = {
 
     async createCard(payload) {
         const { data, error } = await supabase.from('credit_cards').insert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async createGoal(payload) {
+        if(!payload.deadline) payload.deadline = null;
+        const { data, error } = await supabase.from('goals').insert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async createDebt(payload) {
+        const { data, error } = await supabase.from('debts').insert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async createInvestment(payload) {
+        const { data, error } = await supabase.from('investments').insert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async importTransactions(payloads) {
+        const { data, error } = await supabase.from('transactions').insert(payloads).select();
         if (error) throw error;
         return data;
     },
@@ -208,7 +241,6 @@ const ui = {
                     const icon = t.categories?.icon || 'money';
                     const catColor = t.categories?.color || '#999';
 
-                    // Secure Element Creation
                     const row = document.createElement('div');
                     row.className = "flex items-center justify-between py-2 border-b border-gray-50 last:border-0";
 
@@ -225,7 +257,6 @@ const ui = {
                         <span class="font-bold text-sm ${colorClass}">${sign}${formatCurrency(Math.abs(t.amount))}</span>
                     `;
 
-                    // Safe Text Insertion
                     row.querySelector('.trunc-desc').textContent = t.description;
                     row.querySelector('.trunc-sub').textContent = `${t.accounts?.name || 'Cartão'} • ${formatDate(t.date)}`;
 
@@ -233,7 +264,6 @@ const ui = {
                 });
             }
 
-            // Render Date
             document.getElementById('current-date-display').innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('user-name-display').innerText = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
@@ -247,8 +277,6 @@ const ui = {
 
     // --- TRANSACTIONS RENDER ---
     async renderTransactions() {
-        // Reuse recent fetch for now, but usually needs a dedicated paginated fetch
-        // For simplicity, we just fetch last 50
         this.toggleLoading(true);
         try {
             const { data, error } = await supabase
@@ -268,7 +296,6 @@ const ui = {
                     const catColor = t.categories?.color || '#ccc';
                     const icon = t.categories?.icon || 'circle';
 
-                    // Secure Element Creation
                     const row = document.createElement('div');
                     row.className = "p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer";
 
@@ -288,7 +315,6 @@ const ui = {
                         </div>
                     `;
 
-                    // Safe Text Insertion
                     row.querySelector('.trunc-desc').textContent = t.description;
                     row.querySelector('.trunc-sub').textContent = `${t.categories?.name || 'Sem categoria'} • ${formatDate(t.date)}`;
 
@@ -305,11 +331,144 @@ const ui = {
         }
     },
 
+    // --- GOALS RENDER ---
+    async renderGoals() {
+        this.toggleLoading(true);
+        try {
+            const goals = await api.getGoals();
+            const listEl = document.getElementById('goals-list');
+            listEl.innerHTML = '';
+
+            if(goals.length === 0) {
+                listEl.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">Nenhuma meta cadastrada.</div>';
+                return;
+            }
+
+            goals.forEach(g => {
+                const percentage = Math.min(100, Math.round((g.current_amount / g.target_amount) * 100));
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 rounded-xl bg-orange-50 text-brand-orange">
+                            <i class="ph ph-target text-xl"></i>
+                        </div>
+                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">${percentage}%</span>
+                    </div>
+                    <h3 class="font-bold text-gray-900 text-lg mb-1 trunc-name"></h3>
+                    <p class="text-sm text-gray-500 mb-4">Meta: ${formatCurrency(g.target_amount)}</p>
+
+                    <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                        <div class="bg-brand-orange h-2 rounded-full" style="width: ${percentage}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 text-right">Atual: ${formatCurrency(g.current_amount)}</p>
+                `;
+                card.querySelector('.trunc-name').textContent = g.name;
+                listEl.appendChild(card);
+            });
+
+        } catch(e) {
+            console.error(e);
+            showToast('Erro ao carregar metas', 'error');
+        } finally {
+            this.toggleLoading(false);
+        }
+    },
+
+    // --- DEBTS RENDER ---
+    async renderDebts() {
+        this.toggleLoading(true);
+        try {
+            const debts = await api.getDebts();
+            const listEl = document.getElementById('debts-list');
+            listEl.innerHTML = '';
+
+            if(debts.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-400 py-10">Nenhuma dívida cadastrada.</div>';
+                return;
+            }
+
+            debts.forEach(d => {
+                const isLoan = d.type === 'LOAN';
+                const typeLabel = isLoan ? 'A receber' : 'A pagar';
+                const colorClass = isLoan ? 'text-green-600' : 'text-red-600';
+
+                const item = document.createElement('div');
+                item.className = "p-4 flex items-center justify-between hover:bg-gray-50 transition-colors";
+                item.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600">
+                            <i class="ph ph-receipt text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900 trunc-name"></p>
+                            <p class="text-xs text-gray-500">${typeLabel} • Restante: ${formatCurrency(d.remaining_amount)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${colorClass}">${formatCurrency(d.total_amount)}</p>
+                    </div>
+                `;
+                item.querySelector('.trunc-name').textContent = d.name;
+                listEl.appendChild(item);
+            });
+
+        } catch(e) {
+            console.error(e);
+            showToast('Erro ao carregar dívidas', 'error');
+        } finally {
+            this.toggleLoading(false);
+        }
+    },
+
+    // --- INVESTMENTS RENDER ---
+    async renderInvestments() {
+        this.toggleLoading(true);
+        try {
+            const items = await api.getInvestments();
+            const listEl = document.getElementById('investments-list');
+            listEl.innerHTML = '';
+
+            if(items.length === 0) {
+                listEl.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">Nenhum investimento cadastrado.</div>';
+                return;
+            }
+
+            items.forEach(i => {
+                let icon = 'chart-line-up';
+                let color = 'bg-blue-100 text-blue-600';
+                if(i.type === 'CRYPTO') { icon = 'currency-btc'; color = 'bg-yellow-100 text-yellow-600'; }
+                if(i.type === 'FIXED') { icon = 'bank'; color = 'bg-green-100 text-green-600'; }
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 rounded-xl ${color}">
+                            <i class="ph ph-${icon} text-xl"></i>
+                        </div>
+                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">${i.type}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-900 text-lg mb-1 trunc-name"></h3>
+                    <p class="font-bold text-brand-black text-xl">${formatCurrency(i.current_value)}</p>
+                `;
+                card.querySelector('.trunc-name').textContent = i.name;
+                listEl.appendChild(card);
+            });
+
+        } catch(e) {
+            console.error(e);
+            showToast('Erro ao carregar investimentos', 'error');
+        } finally {
+            this.toggleLoading(false);
+        }
+    },
+
     // --- REPORTS RENDER ---
     async renderReports() {
         try {
              const data = await api.getCategoryReport();
-             // Simple grouping by category name
              const grouped = {};
              data.forEach(item => {
                  if(!grouped[item.category_name]) grouped[item.category_name] = 0;
@@ -317,8 +476,6 @@ const ui = {
              });
 
              const ctx = document.getElementById('chart-categories').getContext('2d');
-
-             // Destroy existing if needed (simple check)
              if(window.myChart) window.myChart.destroy();
 
              window.myChart = new Chart(ctx, {
@@ -352,10 +509,9 @@ const ui = {
         const modal = document.getElementById(id);
         modal.classList.remove('hidden');
 
-        // Populate selects if needed
         if (id === 'modal-transaction') this.populateTransactionForm();
+        if (id === 'modal-import') this.populateImportForm();
 
-        // Small timeout for transition
         setTimeout(() => modal.classList.add('modal-open'), 10);
     },
 
@@ -364,7 +520,6 @@ const ui = {
         modal.classList.remove('modal-open');
         setTimeout(() => {
             modal.classList.add('hidden');
-            // Check if any other modal is open
             const openModals = document.querySelectorAll('.modal-open');
             if (openModals.length === 0) {
                  document.getElementById('modal-backdrop').classList.add('opacity-0');
@@ -381,20 +536,17 @@ const ui = {
     },
 
     setTransactionType(btn, type) {
-        // Reset styles
         const container = btn.parentElement;
         Array.from(container.children).forEach(c => {
             c.classList.remove('bg-white', 'shadow-sm', 'text-brand-black');
             c.classList.add('text-gray-500');
         });
 
-        // Active style
         btn.classList.remove('text-gray-500');
         btn.classList.add('bg-white', 'shadow-sm', 'text-brand-black');
 
         document.getElementById('trx-type').value = type;
 
-        // Toggle Fields
         if (type === 'TRANSFER') {
             document.getElementById('field-category').classList.add('hidden');
             document.getElementById('field-transfer-target').classList.remove('hidden');
@@ -409,12 +561,10 @@ const ui = {
         const accSelect = document.getElementById('trx-account');
         const targetSelect = document.getElementById('trx-transfer-target');
 
-        // Clear
         catSelect.innerHTML = '<option value="">Selecione...</option>';
         accSelect.innerHTML = '<option value="">Selecione...</option>';
         targetSelect.innerHTML = '<option value="">Selecione...</option>';
 
-        // Fetch
         const [cats, accs, cards] = await Promise.all([
             api.getCategories(document.getElementById('trx-type').value === 'INCOME' ? 'INCOME' : 'EXPENSE'),
             api.getAccounts(),
@@ -429,7 +579,7 @@ const ui = {
         accGroup.label = 'Contas';
         accs.forEach(a => {
             accGroup.innerHTML += `<option value="${a.id}">${a.name}</option>`;
-            targetSelect.innerHTML += `<option value="${a.id}">${a.name}</option>`; // Targets can only be accounts
+            targetSelect.innerHTML += `<option value="${a.id}">${a.name}</option>`;
         });
         accSelect.appendChild(accGroup);
 
@@ -439,36 +589,55 @@ const ui = {
             cardGroup.innerHTML += `<option value="card_${c.id}">${c.name}</option>`;
         });
         accSelect.appendChild(cardGroup);
+    },
+
+    async populateImportForm() {
+        const catSelect = document.getElementById('import-category');
+        const accSelect = document.getElementById('import-account');
+
+        catSelect.innerHTML = '<option value="">Sem categoria (opcional)</option>';
+        accSelect.innerHTML = '';
+
+        const [cats, accs] = await Promise.all([
+            api.getCategories(), // All types
+            api.getAccounts()
+        ]);
+
+        cats.forEach(c => {
+            catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        });
+
+        accs.forEach(a => {
+            accSelect.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+        });
     }
 };
 
 // --- ROUTER ---
 const router = {
     navigate(target) {
-        // Hide all views
         document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
 
-        // Hide/Show Auth vs App
         if (target === 'login') {
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('app-view').classList.add('hidden');
         } else {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('app-view').classList.remove('hidden');
-            document.getElementById('app-view').classList.add('flex'); // Ensure flex display
+            document.getElementById('app-view').classList.add('flex');
 
-            // Show target view
             const viewEl = document.getElementById(`view-${target}`);
             if (viewEl) {
                 viewEl.classList.remove('hidden');
-                // Trigger Loaders
                 if (target === 'dashboard') ui.renderDashboard();
                 if (target === 'transactions') ui.renderTransactions();
                 if (target === 'reports') ui.renderReports();
+                if (target === 'goals') ui.renderGoals();
+                if (target === 'debts') ui.renderDebts();
+                if (target === 'investments') ui.renderInvestments();
             }
         }
 
-        // Update Nav State
         document.querySelectorAll('.nav-item').forEach(btn => {
             if (btn.dataset.target === target) {
                 btn.classList.add('active', 'text-brand-orange');
@@ -484,13 +653,9 @@ const router = {
 // --- EVENT LISTENERS & INIT ---
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Init API
     const isConfigured = await api.init();
 
     if (!isConfigured) {
-        // If not configured, show Settings only or prompt
-        // For now, we allow login screen but functionality will fail until config is set
-        // Better: Pre-fill config form in Settings if locally stored
         const stored = localStorage.getItem(CONFIG_KEY);
         if(stored) {
              const {url, key} = JSON.parse(stored);
@@ -499,19 +664,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 2. Auth Listeners
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const btnText = document.getElementById('auth-btn-text');
 
-        // Simple toggle state check (Sign In vs Sign Up)
         const isSignUp = btnText.innerText === 'Criar Conta';
 
         try {
             ui.toggleLoading(true);
-            // Check if config exists
             if (!supabase) {
                 throw new Error("Configure a URL do Supabase primeiro (no código ou via Configurações).");
             }
@@ -542,11 +704,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Logout
     document.getElementById('logout-btn-desktop').addEventListener('click', api.signOut);
     document.getElementById('logout-btn-mobile').addEventListener('click', api.signOut);
 
-    // Navigation
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.target;
@@ -554,7 +714,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Config Save
     document.getElementById('config-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const url = document.getElementById('cfg-url').value;
@@ -563,13 +722,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, key }));
             api.init().then(() => {
                 showToast('Configuração salva!', 'success');
-                // Reload to refresh client
                 location.reload();
             });
         }
     });
 
-    // Forms
     document.getElementById('form-account').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -577,7 +734,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await api.createAccount(Object.fromEntries(formData.entries()));
             showToast('Conta criada!', 'success');
             ui.closeModal('modal-account');
-            ui.renderDashboard(); // Refresh
+            ui.renderDashboard();
         } catch(err) { showToast(err.message, 'error'); }
     });
 
@@ -601,12 +758,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch(err) { showToast(err.message, 'error'); }
     });
 
+    document.getElementById('form-goal').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            await api.createGoal(Object.fromEntries(formData.entries()));
+            showToast('Meta criada!', 'success');
+            ui.closeModal('modal-goal');
+            ui.renderGoals();
+        } catch(err) { showToast(err.message, 'error'); }
+    });
+
+    document.getElementById('form-debt').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            await api.createDebt(Object.fromEntries(formData.entries()));
+            showToast('Dívida criada!', 'success');
+            ui.closeModal('modal-debt');
+            ui.renderDebts();
+        } catch(err) { showToast(err.message, 'error'); }
+    });
+
+    document.getElementById('form-investment').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            await api.createInvestment(Object.fromEntries(formData.entries()));
+            showToast('Investimento salvo!', 'success');
+            ui.closeModal('modal-investment');
+            ui.renderInvestments();
+        } catch(err) { showToast(err.message, 'error'); }
+    });
+
     document.getElementById('form-transaction').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
 
-        // Adjust Account/Card ID logic
         const accountSelection = document.getElementById('trx-account').value;
         if (accountSelection.startsWith('card_')) {
             data.card_id = accountSelection.replace('card_', '');
@@ -628,7 +817,78 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Check Session on Load
+    // Import CSV Logic
+    document.getElementById('btn-process-import').addEventListener('click', async () => {
+        const fileInput = document.getElementById('csv-file');
+        const file = fileInput.files[0];
+        const categoryId = document.getElementById('import-category').value || null;
+        const accountId = document.getElementById('import-account').value;
+
+        if (!file) {
+            showToast('Selecione um arquivo CSV.', 'error');
+            return;
+        }
+        if (!accountId) {
+            showToast('Selecione uma conta de destino.', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            const lines = text.split('\n');
+            const payloads = [];
+
+            // Skip header if it exists? simple check for now: try to parse line 0 as date, if fail skip
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const parts = line.split(',');
+                if (parts.length < 3) continue;
+
+                const date = parts[0].trim();
+                const desc = parts[1].trim();
+                const valStr = parts[2].trim();
+                const amount = parseFloat(valStr);
+
+                if (isNaN(amount)) continue; // Skip header or invalid
+
+                payloads.push({
+                    user_id: currentUser.id,
+                    date: date,
+                    description: desc,
+                    amount: amount,
+                    type: amount >= 0 ? 'INCOME' : 'EXPENSE',
+                    status: 'CONFIRMED',
+                    account_id: accountId,
+                    category_id: categoryId
+                });
+            }
+
+            if (payloads.length === 0) {
+                showToast('Nenhum lançamento válido encontrado.', 'error');
+                return;
+            }
+
+            try {
+                ui.toggleLoading(true);
+                await api.importTransactions(payloads);
+                showToast(`${payloads.length} lançamentos importados!`, 'success');
+                ui.closeModal('modal-import');
+                ui.renderDashboard();
+                fileInput.value = ''; // Reset
+            } catch (err) {
+                console.error(err);
+                showToast('Erro na importação.', 'error');
+            } finally {
+                ui.toggleLoading(false);
+            }
+        };
+        reader.readAsText(file);
+    });
+
     if (await api.init()) {
         const user = await api.checkAuth();
         if (user) {
@@ -637,8 +897,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             router.navigate('login');
         }
     } else {
-        // No config found, stay on login but maybe hint to user
         console.log("Waiting for config...");
-        router.navigate('login'); // Default view
+        router.navigate('login');
     }
 });

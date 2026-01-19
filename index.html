@@ -106,6 +106,15 @@
                     <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="transactions">
                         <i class="ph ph-list-dashes text-xl"></i> Lançamentos
                     </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="goals">
+                        <i class="ph ph-target text-xl"></i> Metas
+                    </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="debts">
+                        <i class="ph ph-receipt text-xl"></i> Dívidas
+                    </button>
+                    <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="investments">
+                        <i class="ph ph-trend-up text-xl"></i> Investimentos
+                    </button>
                     <button class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-brand-black transition-all" data-target="reports">
                         <i class="ph ph-chart-pie-slice text-xl"></i> Relatórios
                     </button>
@@ -199,9 +208,14 @@
                 <div id="view-transactions" class="view hidden space-y-6 max-w-5xl mx-auto">
                     <div class="flex justify-between items-center">
                         <h1 class="text-2xl font-bold text-gray-900">Lançamentos</h1>
-                        <button onclick="ui.openModal('modal-transaction')" class="hidden md:flex bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center">
-                            <i class="ph ph-plus"></i> Novo
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="ui.openModal('modal-import')" class="hidden md:flex bg-white border border-gray-200 text-brand-black px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors gap-2 items-center">
+                                <i class="ph ph-upload-simple"></i> Importar
+                            </button>
+                            <button onclick="ui.openModal('modal-transaction')" class="hidden md:flex bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center">
+                                <i class="ph ph-plus"></i> Novo
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filters -->
@@ -216,6 +230,53 @@
                         <div id="transactions-list" class="divide-y divide-gray-100">
                            <!-- Dynamic Content -->
                         </div>
+                    </div>
+                </div>
+
+                <!-- GOALS (Metas) -->
+                <div id="view-goals" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">Metas Financeiras</h1>
+                        <button onclick="ui.openModal('modal-goal')" class="bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center flex">
+                            <i class="ph ph-plus"></i> Nova Meta
+                        </button>
+                    </div>
+
+                    <div id="goals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Dynamic Content -->
+                         <div class="text-gray-500 text-center col-span-full py-8">Carregando metas...</div>
+                    </div>
+                </div>
+
+                <!-- DEBTS (Dívidas) -->
+                <div id="view-debts" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">Dívidas & Empréstimos</h1>
+                        <button onclick="ui.openModal('modal-debt')" class="bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center flex">
+                            <i class="ph ph-plus"></i> Nova Dívida
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div id="debts-list" class="divide-y divide-gray-100">
+                           <!-- Dynamic Content -->
+                            <div class="text-gray-500 text-center py-8">Carregando dívidas...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INVESTMENTS (Investimentos) -->
+                <div id="view-investments" class="view hidden space-y-6 max-w-5xl mx-auto">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">Carteira de Investimentos</h1>
+                        <button onclick="ui.openModal('modal-investment')" class="bg-brand-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors gap-2 items-center flex">
+                            <i class="ph ph-plus"></i> Novo Ativo
+                        </button>
+                    </div>
+
+                    <div id="investments-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Dynamic Content -->
+                         <div class="text-gray-500 text-center col-span-full py-8">Carregando investimentos...</div>
                     </div>
                 </div>
 
@@ -276,7 +337,10 @@
                 </button>
 
                 <!-- FAB Placeholder -->
-                <div class="w-12"></div>
+                <button class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="goals">
+                    <i class="ph ph-target text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Metas</span>
+                </button>
 
                 <button class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="reports">
                     <i class="ph ph-chart-pie-slice text-2xl mb-0.5"></i>
@@ -289,7 +353,7 @@
             </nav>
 
             <!-- Floating Action Button (Mobile) -->
-            <button onclick="ui.openModal('modal-transaction')" class="md:hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-brand-black text-white w-14 h-14 rounded-full shadow-xl shadow-gray-400 flex items-center justify-center z-40 active:scale-90 transition-transform">
+            <button onclick="ui.openModal('modal-transaction')" class="md:hidden fixed bottom-6 right-6 bg-brand-black text-white w-14 h-14 rounded-full shadow-xl shadow-gray-400 flex items-center justify-center z-40 active:scale-90 transition-transform">
                 <i class="ph ph-plus text-2xl"></i>
             </button>
 
@@ -432,6 +496,95 @@
             <input type="number" name="limit_amount" placeholder="Limite" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
             <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Cartão</button>
         </form>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="modal-goal" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Nova Meta</h3>
+            <button onclick="ui.closeModal('modal-goal')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-goal" class="space-y-4">
+            <input type="text" name="name" placeholder="Nome (ex: Viagem)" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <input type="number" step="0.01" name="target_amount" placeholder="Valor Alvo" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <div>
+                 <label class="text-xs font-semibold text-gray-500 uppercase">Prazo (Opcional)</label>
+                 <input type="date" name="deadline" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none mt-1">
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Meta</button>
+        </form>
+    </div>
+
+    <!-- Debt Modal -->
+    <div id="modal-debt" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Nova Dívida</h3>
+            <button onclick="ui.closeModal('modal-debt')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-debt" class="space-y-4">
+            <input type="text" name="name" placeholder="Nome (ex: Empréstimo Pessoal)" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+             <select name="type" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                <option value="DEBT">Dívida (Eu Devo)</option>
+                <option value="LOAN">Empréstimo (Me Devem)</option>
+            </select>
+            <input type="number" step="0.01" name="total_amount" placeholder="Valor Total" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+             <input type="number" step="0.01" name="remaining_amount" placeholder="Valor Restante" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Dívida</button>
+        </form>
+    </div>
+
+    <!-- Investment Modal -->
+    <div id="modal-investment" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Novo Investimento</h3>
+            <button onclick="ui.closeModal('modal-investment')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="form-investment" class="space-y-4">
+            <input type="text" name="name" placeholder="Nome (ex: PETR4, Tesouro)" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <select name="type" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+                <option value="STOCK">Ações</option>
+                <option value="FIXED">Renda Fixa</option>
+                <option value="CRYPTO">Cripto</option>
+                <option value="OTHER">Outros</option>
+            </select>
+            <input type="number" step="0.01" name="current_value" placeholder="Valor Atual" required class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none">
+            <button type="submit" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Salvar Ativo</button>
+        </form>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="modal-import" class="fixed bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl z-[60] transform transition-transform translate-y-full duration-300 hidden p-6 shadow-2xl">
+         <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold">Importar CSV</h3>
+            <button onclick="ui.closeModal('modal-import')" class="p-2 bg-gray-100 rounded-full text-gray-500"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="space-y-4">
+            <div class="p-4 bg-gray-50 rounded-xl text-sm text-gray-500">
+                <p class="font-bold mb-1">Formato esperado:</p>
+                <code class="block bg-gray-100 p-2 rounded">data,descricao,valor</code>
+                <p class="mt-2 text-xs">Ex: 2023-10-01,Mercado,-150.00</p>
+            </div>
+            <input type="file" id="csv-file" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-orange file:text-white hover:file:bg-orange-600">
+
+            <!-- Category for all imports (Simplification) -->
+            <div>
+                 <label class="text-xs font-semibold text-gray-500 uppercase">Categoria Padrão</label>
+                 <select id="import-category" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none mt-1">
+                     <option value="">Sem categoria (opcional)</option>
+                     <!-- Populated by JS -->
+                 </select>
+            </div>
+
+             <!-- Account for all imports -->
+            <div>
+                 <label class="text-xs font-semibold text-gray-500 uppercase">Conta Destino</label>
+                 <select id="import-account" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:border-brand-orange outline-none mt-1">
+                     <!-- Populated by JS -->
+                 </select>
+            </div>
+
+            <button id="btn-process-import" class="w-full py-3 bg-brand-black text-white rounded-xl font-bold">Processar Importação</button>
+        </div>
     </div>
 
     <script src="app.js"></script>

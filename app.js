@@ -145,15 +145,43 @@ const api = {
         return data;
     },
 
+    async getBudgets(monthStr) {
+        // monthStr 'YYYY-MM'. This calls our RPC
+        const { data, error } = await supabase.rpc('get_budget_status', { p_month_str: monthStr });
+        if (error) throw error;
+        return data;
+    },
+
     // --- CREATION ---
     async createTransaction(payload) {
-        if (!payload.account_id) payload.account_id = null;
-        if (!payload.card_id) payload.card_id = null;
-        if (!payload.transfer_account_id) payload.transfer_account_id = null;
+        // If installments > 1, use RPC
+        if (payload.installments && parseInt(payload.installments) > 1 && payload.card_id) {
+            const rpcPayload = {
+                p_description: payload.description,
+                p_amount: payload.amount,
+                p_date: payload.date,
+                p_category_id: payload.category_id,
+                p_user_id: currentUser.id,
+                p_card_id: payload.card_id,
+                p_installments: parseInt(payload.installments)
+            };
 
-        const { data, error } = await supabase.from('transactions').insert(payload).select();
-        if (error) throw error;
-        return data[0];
+            const { data, error } = await supabase.rpc('create_transaction_with_installments', rpcPayload);
+            if (error) throw error;
+            return data;
+
+        } else {
+            // Standard Insert
+            if (!payload.account_id) payload.account_id = null;
+            if (!payload.card_id) payload.card_id = null;
+            if (!payload.transfer_account_id) payload.transfer_account_id = null;
+            // Clean up unneeded field
+            delete payload.installments;
+
+            const { data, error } = await supabase.from('transactions').insert(payload).select();
+            if (error) throw error;
+            return data[0];
+        }
     },
 
     async createAccount(payload) {
@@ -190,6 +218,12 @@ const api = {
 
     async createInvestment(payload) {
         const { data, error } = await supabase.from('investments').insert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async createBudget(payload) {
+        const { data, error } = await supabase.from('budgets').insert(payload).select();
         if (error) throw error;
         return data;
     },
@@ -465,6 +499,51 @@ const ui = {
         }
     },
 
+    // --- BUDGETS RENDER ---
+    async renderBudgets() {
+        this.toggleLoading(true);
+        try {
+            const now = new Date();
+            const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const items = await api.getBudgets(monthStr);
+            const listEl = document.getElementById('budgets-list');
+            listEl.innerHTML = '';
+
+            if(items.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-400 py-10">Nenhum orçamento definido para este mês.</div>';
+                return;
+            }
+
+            items.forEach(b => {
+                const color = b.percentage > 100 ? 'bg-red-500' : 'bg-brand-orange';
+                const textColor = b.percentage > 100 ? 'text-red-600' : 'text-gray-900';
+
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-medium text-gray-700 trunc-name"></span>
+                        <span class="text-sm font-bold ${textColor}">${b.percentage}%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+                        <div class="${color} h-2 rounded-full" style="width: ${Math.min(b.percentage, 100)}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>Gasto: ${formatCurrency(b.spent_amount)}</span>
+                        <span>Limite: ${formatCurrency(b.budget_amount)}</span>
+                    </div>
+                `;
+                div.querySelector('.trunc-name').textContent = b.category_name;
+                listEl.appendChild(div);
+            });
+
+        } catch(e) {
+            console.error(e);
+            showToast('Erro ao carregar orçamentos', 'error');
+        } finally {
+            this.toggleLoading(false);
+        }
+    },
+
     // --- REPORTS RENDER ---
     async renderReports() {
         try {
@@ -511,6 +590,7 @@ const ui = {
 
         if (id === 'modal-transaction') this.populateTransactionForm();
         if (id === 'modal-import') this.populateImportForm();
+        if (id === 'modal-budget') this.populateBudgetForm();
 
         setTimeout(() => modal.classList.add('modal-open'), 10);
     },
@@ -550,9 +630,22 @@ const ui = {
         if (type === 'TRANSFER') {
             document.getElementById('field-category').classList.add('hidden');
             document.getElementById('field-transfer-target').classList.remove('hidden');
+            document.getElementById('field-installments').classList.add('hidden'); // No installments for transfer
         } else {
             document.getElementById('field-category').classList.remove('hidden');
             document.getElementById('field-transfer-target').classList.add('hidden');
+        }
+    },
+
+    checkCardSelected(select) {
+        const isCard = select.value.startsWith('card_');
+        const installField = document.getElementById('field-installments');
+        const type = document.getElementById('trx-type').value;
+
+        if (isCard && type === 'EXPENSE') {
+            installField.classList.remove('hidden');
+        } else {
+            installField.classList.add('hidden');
         }
     },
 
@@ -610,6 +703,15 @@ const ui = {
         accs.forEach(a => {
             accSelect.innerHTML += `<option value="${a.id}">${a.name}</option>`;
         });
+    },
+
+    async populateBudgetForm() {
+        const catSelect = document.getElementById('budget-category');
+        catSelect.innerHTML = '<option value="">Selecione...</option>';
+        const cats = await api.getCategories('EXPENSE');
+        cats.forEach(c => {
+             catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        });
     }
 };
 
@@ -635,6 +737,7 @@ const router = {
                 if (target === 'goals') ui.renderGoals();
                 if (target === 'debts') ui.renderDebts();
                 if (target === 'investments') ui.renderInvestments();
+                if (target === 'budgets') ui.renderBudgets();
             }
         }
 
@@ -788,6 +891,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Investimento salvo!', 'success');
             ui.closeModal('modal-investment');
             ui.renderInvestments();
+        } catch(err) { showToast(err.message, 'error'); }
+    });
+
+    document.getElementById('form-budget').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            await api.createBudget(Object.fromEntries(formData.entries()));
+            showToast('Orçamento salvo!', 'success');
+            ui.closeModal('modal-budget');
+            ui.renderBudgets();
         } catch(err) { showToast(err.message, 'error'); }
     });
 

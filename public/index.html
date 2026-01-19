@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PFM Pessoal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="logo">PFM</div>
+        <div class="topbar-actions">
+          <button class="btn ghost" id="btn-sync">Sincronizar</button>
+          <button class="btn" id="btn-logout">Sair</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <nav class="sidebar">
+          <button class="nav-item" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" data-view="transactions">Lançamentos</button>
+          <button class="nav-item" data-view="cards">Cartões</button>
+          <button class="nav-item" data-view="budgets">Orçamentos</button>
+          <button class="nav-item" data-view="goals">Metas</button>
+          <button class="nav-item" data-view="debts">Dívidas</button>
+          <button class="nav-item" data-view="investments">Investimentos</button>
+          <button class="nav-item" data-view="imports">Importação</button>
+          <button class="nav-item" data-view="reports">Relatórios</button>
+          <button class="nav-item" data-view="settings">Configurações</button>
+        </nav>
+
+        <section class="content">
+          <div id="login-view" class="view">
+            <div class="card">
+              <h1>Entrar</h1>
+              <p class="muted">Use email e senha ou magic link.</p>
+              <form id="login-form" class="form">
+                <label>Email
+                  <input type="email" id="login-email" required />
+                </label>
+                <label>Senha
+                  <input type="password" id="login-password" />
+                </label>
+                <div class="actions">
+                  <button class="btn" type="submit">Entrar</button>
+                  <button class="btn ghost" type="button" id="btn-magic">Enviar Magic Link</button>
+                </div>
+              </form>
+              <div class="divider"></div>
+              <h2>Criar conta</h2>
+              <form id="signup-form" class="form">
+                <label>Nome completo
+                  <input type="text" id="signup-name" required />
+                </label>
+                <label>Email
+                  <input type="email" id="signup-email" required />
+                </label>
+                <label>Senha
+                  <input type="password" id="signup-password" required />
+                </label>
+                <button class="btn" type="submit">Criar conta</button>
+              </form>
+            </div>
+          </div>
+
+          <div id="dashboard-view" class="view">
+            <div class="page-header">
+              <h1>Dashboard</h1>
+              <button class="btn" id="btn-new-transaction">+ Novo lançamento</button>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h3>Saldo por conta</h3>
+                <div id="account-balances" class="list skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Compromissos futuros</h3>
+                <div id="upcoming-commitments" class="list skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Patrimônio</h3>
+                <div id="net-worth" class="stat">--</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="transactions-view" class="view">
+            <div class="page-header">
+              <h1>Lançamentos</h1>
+              <button class="btn" data-open-modal="transaction-modal">+ Lançamento</button>
+            </div>
+            <div id="transactions-list" class="table skeleton"></div>
+          </div>
+
+          <div id="cards-view" class="view">
+            <div class="page-header">
+              <h1>Cartões</h1>
+              <button class="btn" data-open-modal="card-modal">+ Cartão</button>
+            </div>
+            <div class="card">
+              <h3>Faturas</h3>
+              <div id="card-invoices" class="table skeleton"></div>
+              <div class="actions">
+                <button class="btn" id="btn-close-invoice">Fechar fatura</button>
+                <button class="btn ghost" id="btn-pay-invoice">Pagar fatura</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="budgets-view" class="view">
+            <div class="page-header">
+              <h1>Orçamentos</h1>
+              <button class="btn" data-open-modal="budget-modal">+ Orçamento</button>
+            </div>
+            <div id="budgets-list" class="table skeleton"></div>
+          </div>
+
+          <div id="goals-view" class="view">
+            <div class="page-header">
+              <h1>Metas</h1>
+              <button class="btn" data-open-modal="goal-modal">+ Meta</button>
+            </div>
+            <div id="goals-list" class="table skeleton"></div>
+          </div>
+
+          <div id="debts-view" class="view">
+            <div class="page-header">
+              <h1>Dívidas</h1>
+              <button class="btn" data-open-modal="debt-modal">+ Dívida</button>
+            </div>
+            <div id="debts-list" class="table skeleton"></div>
+          </div>
+
+          <div id="investments-view" class="view">
+            <div class="page-header">
+              <h1>Investimentos</h1>
+              <button class="btn" data-open-modal="investment-modal">+ Investimento</button>
+            </div>
+            <div id="investments-list" class="table skeleton"></div>
+          </div>
+
+          <div id="imports-view" class="view">
+            <div class="page-header">
+              <h1>Importação CSV</h1>
+            </div>
+            <div class="card">
+              <input type="file" id="csv-file" accept=".csv" />
+              <button class="btn" id="btn-import">Importar</button>
+              <div id="import-preview" class="table"></div>
+            </div>
+          </div>
+
+          <div id="reports-view" class="view">
+            <div class="page-header">
+              <h1>Relatórios</h1>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h3>Fluxo mensal</h3>
+                <div id="cashflow-report" class="list skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Gastos por categoria</h3>
+                <div id="category-report" class="list skeleton"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="settings-view" class="view">
+            <div class="page-header">
+              <h1>Configurações</h1>
+              <button class="btn" data-open-modal="account-modal">+ Conta</button>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h3>Contas</h3>
+                <div id="accounts-list" class="table skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Categorias</h3>
+                <button class="btn ghost" data-open-modal="category-modal">+ Cadastrar novo</button>
+                <div id="categories-list" class="table skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Tags</h3>
+                <button class="btn ghost" data-open-modal="tag-modal">+ Cadastrar novo</button>
+                <div id="tags-list" class="table skeleton"></div>
+              </div>
+              <div class="card">
+                <h3>Favorecidos</h3>
+                <button class="btn ghost" data-open-modal="payee-modal">+ Cadastrar novo</button>
+                <div id="payees-list" class="table skeleton"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="transactions">Lançamentos</button>
+        <button class="nav-item" data-view="cards">Cartões</button>
+        <button class="nav-item" data-view="reports">Relatórios</button>
+        <button class="nav-item" data-view="settings">Config.</button>
+      </nav>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden"></div>
+
+    <div id="transaction-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Novo lançamento</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="transaction-form" class="form">
+        <label>Tipo
+          <select id="tx-kind">
+            <option value="expense">Despesa</option>
+            <option value="income">Receita</option>
+            <option value="transfer_out">Transferência (saída)</option>
+            <option value="transfer_in">Transferência (entrada)</option>
+            <option value="adjustment">Ajuste</option>
+          </select>
+        </label>
+        <label>Conta
+          <select id="tx-account"></select>
+          <button type="button" class="link" data-open-modal="account-modal">+ Cadastrar novo</button>
+        </label>
+        <label>Cartão (opcional)
+          <select id="tx-card"></select>
+          <button type="button" class="link" data-open-modal="card-modal">+ Cadastrar novo</button>
+        </label>
+        <label>Categoria
+          <select id="tx-category"></select>
+          <button type="button" class="link" data-open-modal="category-modal">+ Cadastrar novo</button>
+        </label>
+        <label>Favorecido
+          <select id="tx-payee"></select>
+          <button type="button" class="link" data-open-modal="payee-modal">+ Cadastrar novo</button>
+        </label>
+        <label>Descrição
+          <input type="text" id="tx-description" required />
+        </label>
+        <label>Valor
+          <input type="number" step="0.01" id="tx-amount" required />
+        </label>
+        <label>Competência
+          <input type="date" id="tx-occurred" required />
+        </label>
+        <label>Pagamento
+          <input type="date" id="tx-posted" required />
+        </label>
+        <label>Split (opcional, JSON)
+          <textarea id="tx-splits" rows="4" placeholder='[{"category_id":"...","amount":50,"notes":"..."}]'></textarea>
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="account-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Nova conta</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="account-form" class="form">
+        <label>Nome
+          <input type="text" id="account-name" required />
+        </label>
+        <label>Tipo
+          <select id="account-type">
+            <option value="bank">Banco</option>
+            <option value="cash">Dinheiro</option>
+            <option value="wallet">Carteira digital</option>
+            <option value="investment">Investimento</option>
+          </select>
+        </label>
+        <label>Saldo inicial
+          <input type="number" step="0.01" id="account-opening" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="category-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Nova categoria</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="category-form" class="form">
+        <label>Nome
+          <input type="text" id="category-name" required />
+        </label>
+        <label>Tipo
+          <select id="category-type">
+            <option value="expense">Despesa</option>
+            <option value="income">Receita</option>
+          </select>
+        </label>
+        <label>Ícone
+          <input type="text" id="category-icon" placeholder="fa-cart" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="tag-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Nova tag</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="tag-form" class="form">
+        <label>Nome
+          <input type="text" id="tag-name" required />
+        </label>
+        <label>Cor
+          <input type="text" id="tag-color" value="#FF6A00" />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="payee-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Novo favorecido</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="payee-form" class="form">
+        <label>Nome
+          <input type="text" id="payee-name" required />
+        </label>
+        <label>Tipo
+          <select id="payee-type">
+            <option value="company">Empresa</option>
+            <option value="person">Pessoa</option>
+          </select>
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="card-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Novo cartão</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="card-form" class="form">
+        <label>Nome
+          <input type="text" id="card-name" required />
+        </label>
+        <label>Limite
+          <input type="number" step="0.01" id="card-limit" required />
+        </label>
+        <label>Fechamento (dia)
+          <input type="number" id="card-closing" min="1" max="28" required />
+        </label>
+        <label>Vencimento (dia)
+          <input type="number" id="card-due" min="1" max="28" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="budget-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Novo orçamento</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="budget-form" class="form">
+        <label>Categoria
+          <select id="budget-category"></select>
+          <button type="button" class="link" data-open-modal="category-modal">+ Cadastrar novo</button>
+        </label>
+        <label>Período (YYYY-MM)
+          <input type="text" id="budget-period" required />
+        </label>
+        <label>Valor
+          <input type="number" step="0.01" id="budget-amount" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="goal-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Nova meta</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="goal-form" class="form">
+        <label>Nome
+          <input type="text" id="goal-name" required />
+        </label>
+        <label>Valor alvo
+          <input type="number" step="0.01" id="goal-amount" required />
+        </label>
+        <label>Prazo
+          <input type="date" id="goal-date" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="debt-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Nova dívida</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="debt-form" class="form">
+        <label>Nome
+          <input type="text" id="debt-name" required />
+        </label>
+        <label>Principal
+          <input type="number" step="0.01" id="debt-principal" required />
+        </label>
+        <label>Juros (a.a.)
+          <input type="number" step="0.001" id="debt-interest" required />
+        </label>
+        <label>Prazo (meses)
+          <input type="number" id="debt-term" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <div id="investment-modal" class="modal hidden">
+      <div class="modal-header">
+        <h3>Novo investimento</h3>
+        <button class="btn ghost" data-close-modal>Fechar</button>
+      </div>
+      <form id="investment-form" class="form">
+        <label>Nome
+          <input type="text" id="investment-name" required />
+        </label>
+        <label>Tipo
+          <input type="text" id="investment-type" required />
+        </label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

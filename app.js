@@ -790,7 +790,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (err) {
             console.error(err);
-            showToast(err.message, 'error');
+            let msg = err.message;
+            if (msg.includes('Invalid login credentials')) {
+                msg = 'Email ou senha incorretos. Se criou a conta agora, verifique se confirmou o email.';
+            }
+            if (msg.includes('User already registered')) {
+                msg = 'Este email já está cadastrado. Tente fazer login.';
+            }
+            showToast(msg, 'error');
         } finally {
             ui.toggleLoading(false);
         }
